@@ -34,7 +34,7 @@ export class ProductsService {
     try {
       return await this.productModel.create({
         ...dto,
-        ...(imageUrl ? { imageUrl } : {}),
+        imageUrl : file ? file.filename : undefined,
       });
     } catch (err) {
       if (diskPath) await safeUnlinkByRelativePath(diskPath);
@@ -104,7 +104,7 @@ export class ProductsService {
         id,
         {
           ...dto,
-          imageUrl: newImageUrl,
+          imageUrl: file ? file.filename : undefined,
         },
         { new: true },
       )

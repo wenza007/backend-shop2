@@ -16,12 +16,9 @@ async function bootstrap() {
   });
 
   // ✅ STATIC FILES
-  app.useStaticAssets(
-    join(__dirname, '..', 'uploads', ),
-    {
-      prefix: '/uploads',
-    },
-  );
+  app.useStaticAssets(join(__dirname, '..', 'uploads', 'products'), {
+    prefix: '/products',
+  });
 
   app.useGlobalPipes(
     new ValidationPipe({
