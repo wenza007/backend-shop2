@@ -5,7 +5,7 @@ import { NestFactory } from '@nestjs/core';
 import { AppModule } from './app.module';
 import { join } from 'path';
 import { NestExpressApplication } from '@nestjs/platform-express';
-
+import helmet from 'helmet';
 async function bootstrap() {
   const app = await NestFactory.create<NestExpressApplication>(AppModule);
 
@@ -14,6 +14,7 @@ async function bootstrap() {
     methods: 'GET,POST,PATCH,DELETE',
     credentials: true,
   });
+  app.use(helmet());
 
   // ✅ STATIC FILES
   app.useStaticAssets(join(__dirname, '..', 'uploads', 'products'), {

@@ -8,7 +8,12 @@ import { MongooseModule } from '@nestjs/mongoose';
 import { ProductsModule } from './products/products.module';
 import { ServeStaticModule } from '@nestjs/serve-static';
 import { join } from 'path';
+import { ThrottlerModule, ThrottlerGuard } from '@nestjs/throttler';
 
+import { APP_GUARD } from '@nestjs/core';
+import { AuthModule } from './auth/auth.module';
+import { User } from './users/schemas/user.schema';
+import { UsersModule } from './users/users.module';
 
 
 @Module({
@@ -36,6 +41,19 @@ import { join } from 'path';
       inject: [ConfigService],
 
     }),
+    // ตั้งค่า rate limiting โดยใช้ ThrottlerModule  
+
+    ThrottlerModule.forRoot([
+
+      {
+
+        ttl: 60_000,  // 1 minute 
+
+        limit: 100,   // 100 requests per minute 
+
+      },
+
+    ]),
     // เปิดให้เข้าถึงรูปภาพผ่าน Browser
     ServeStaticModule.forRootAsync({
       imports: [ConfigModule],
@@ -53,6 +71,8 @@ import { join } from 'path';
       },
     }),
     ProductsModule,
+    AuthModule,
+    UsersModule,
 
   ],
 

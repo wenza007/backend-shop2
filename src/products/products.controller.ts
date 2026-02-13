@@ -22,6 +22,10 @@ import type { Express, Response } from 'express';
 import { PRODUCT_IMAGE } from './products.constants';
 import { join } from 'path';
 import { existsSync } from 'fs';
+import { AccessTokenGuard } from '../auth/guards/access-token.guard';
+import { RolesGuard } from '../auth/guards/roles.guard';
+import { Roles } from '../auth/decorators/roles.decorator';
+import { UseGuards } from '@nestjs/common';
 
 // src/products/products.controller.ts
 @Controller('products')
@@ -32,6 +36,8 @@ export class ProductsController {
   // CREATE
   // =============================
   @Post()
+  @UseGuards(AccessTokenGuard, RolesGuard) 
+  @Roles('admin') 
   @UseInterceptors(FileInterceptor('image'))
   create(
     @Body() dto: CreateProductDto,
