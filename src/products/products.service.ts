@@ -15,34 +15,30 @@ import { safeUnlinkByRelativePath } from '../common/utils/file.utils';
 export class ProductsService {
   constructor(
     @InjectModel(Product.name)
-    private productModel: Model<Product>,
+    private readonly productModel: Model<Product>,
   ) { }
 
-  private toPublicImagePath(filePath: string): string {
-    return filePath
-      .replace(/\\/g, '/')
-      .replace(/^\.?\/?uploads\//, '');
-  }
-
+  // =============================
   // CREATE
+  // =============================
   async create(dto: CreateProductDto, file?: Express.Multer.File) {
-    const diskPath = file?.path?.replace(/\\/g, '/');
-    const imageUrl = diskPath
-      ? this.toPublicImagePath(diskPath)
-      : undefined;
-
     try {
       return await this.productModel.create({
         ...dto,
-        imageUrl : file ? file.filename : undefined,
+        imageUrl: file?.filename,
       });
     } catch (err) {
-      if (diskPath) await safeUnlinkByRelativePath(diskPath);
+      // rollback ไฟล์ถ้าสร้างไม่สำเร็จ
+      if (file?.path) {
+        await safeUnlinkByRelativePath(file.path);
+      }
       throw new InternalServerErrorException('Create product failed');
     }
   }
 
+  // =============================
   // READ ALL
+  // =============================
   async findAll(query?: {
     keyword?: string;
     minPrice?: string;
@@ -68,7 +64,9 @@ export class ProductsService {
     return this.productModel.find(filter).sort(sortOption).exec();
   }
 
+  // =============================
   // READ ONE
+  // =============================
   async findOne(id: string): Promise<Product> {
     const product = await this.productModel.findById(id).exec();
     if (!product) {
@@ -77,8 +75,9 @@ export class ProductsService {
     return product;
   }
 
-  // ✅ UPDATE + เปลี่ยนรูป
-  // UPDATE
+  // =============================
+  // UPDATE (ถ้าเปลี่ยนรูป → ลบรูปเก่า)
+  // =============================
   async update(
     id: string,
     dto: UpdateProductDto,
@@ -93,57 +92,44 @@ export class ProductsService {
       throw new NotFoundException('Product not found');
     }
 
-    let newImageUrl = product.imageUrl;
+    const oldImage = product.imageUrl;
 
+    // อัปเดตข้อมูล
+    Object.assign(product, dto);
+
+    // ถ้ามีรูปใหม่
     if (file) {
-      newImageUrl = this.toPublicImagePath(file.path);
+      product.imageUrl = file.filename;
     }
 
-    const updatedProduct = await this.productModel
-      .findByIdAndUpdate(
-        id,
-        {
-          ...dto,
-          imageUrl: file ? file.filename : undefined,
-        },
-        { new: true },
-      )
-      .exec();
+    await product.save();
 
-    if (!updatedProduct) {
-      // rollback รูปใหม่
-      if (file?.path) {
-        await safeUnlinkByRelativePath(file.path);
-      }
-      throw new NotFoundException('Product not found');
+    // ลบรูปเก่า "หลังจาก save สำเร็จแล้ว"
+    if (file && oldImage) {
+      await safeUnlinkByRelativePath(`uploads/products/${oldImage}`);
     }
 
-    // ✅ update สำเร็จ → ค่อยลบรูปเก่า
-    if (file && product.imageUrl) {
-      await safeUnlinkByRelativePath(`uploads/${product.imageUrl}`);
-    }
-
-    return updatedProduct;
+    return product;
   }
 
-
-  // DELETE
-  async remove(id: string): Promise<Product> {
+  // =============================
+  // DELETE (ลบสินค้า + ลบรูป)
+  // =============================
+  async remove(id: string): Promise<{ message: string }> {
     const product = await this.productModel.findById(id).exec();
 
     if (!product) {
       throw new NotFoundException('Product not found');
     }
 
-    // 1️⃣ ลบไฟล์ก่อน
     if (product.imageUrl) {
-      await safeUnlinkByRelativePath(`uploads/${product.imageUrl}`);
+      await safeUnlinkByRelativePath(
+        `uploads/products/${product.imageUrl}`,
+      );
     }
 
-    // 2️⃣ ลบข้อมูลใน DB
     await product.deleteOne();
 
-    return product;
+    return { message: 'Product deleted successfully' };
   }
-
 }

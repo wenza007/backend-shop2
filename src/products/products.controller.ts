@@ -23,9 +23,10 @@ import { PRODUCT_IMAGE } from './products.constants';
 import { join } from 'path';
 import { existsSync } from 'fs';
 
+// src/products/products.controller.ts
 @Controller('products')
 export class ProductsController {
-  constructor(private readonly productsService: ProductsService) { }
+  constructor(private readonly productsService: ProductsService) {}
 
   // =============================
   // CREATE
@@ -68,19 +69,19 @@ export class ProductsController {
   }
 
   // =============================
-  // ✅ SERVE PRODUCT IMAGE
-  // URL: /products/image/:imageName
+  // ✅ SERVE IMAGE
+  // URL: /products/image/xxx.jpg
   // =============================
-  @Get('image/:imageName')
-  getProductImage(
-    @Param('imageName') imageName: string,
+  @Get('image/:filename')
+  getImage(
+    @Param('filename') filename: string,
     @Res() res: Response,
   ) {
     const imagePath = join(
       process.cwd(),
       'uploads',
       'products',
-      imageName,
+      filename,
     );
 
     if (!existsSync(imagePath)) {
@@ -91,7 +92,7 @@ export class ProductsController {
   }
 
   // =============================
-  // READ ONE
+  // READ ONE (สำคัญ)
   // =============================
   @Get(':id')
   findOne(@Param('id') id: string) {
@@ -99,7 +100,7 @@ export class ProductsController {
   }
 
   // =============================
-  // UPDATE (รองรับแก้รูป)
+  // UPDATE
   // =============================
   @Patch(':id')
   @UseInterceptors(FileInterceptor('image'))
